@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   BarChart3,
+  Building2,
   Bus,
   CalendarClock,
   Map,
@@ -37,6 +38,8 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 
 const tiles = [
   { title: "Staff & Clerks", to: "/admin/staff", icon: Users, text: "Add, edit, deactivate and reset clerk accounts." },
+  { title: "Stations", to: "/admin/stations", icon: Building2, text: "Add or delete stations and assign clerks to them." },
+  { title: "Station Report", to: "/admin/stations/reports", icon: BarChart3, text: "Tickets, parcels and revenue per station." },
   { title: "Bookings", to: "/bookings", icon: Ticket, text: "All ticket sales across every branch." },
   { title: "Trips", to: "/trips", icon: CalendarClock, text: "Schedules, dispatch and manifests." },
   { title: "Parcels", to: "/parcels", icon: Package, text: "Parcel bookings, loading sheets and tracking." },

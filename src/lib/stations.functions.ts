@@ -69,6 +69,68 @@ export const setStationActive = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Permanently remove a station. Staff assigned to it are detached first. */
+export const deleteStation = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { error: clearErr } = await context.supabase
+      .from("profiles")
+      .update({ station_id: null })
+      .eq("station_id", data.id);
+    if (clearErr) throw new Error(clearErr.message);
+
+    const { error } = await context.supabase.from("stations").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export type StationStaff = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: "admin" | "clerk";
+  branch_name: string | null;
+  station_id: string | null;
+};
+
+/** Staff list used by the "assign a station" panel. */
+export const listStationStaff = createServerFn({ method: "GET" })
+  .middleware([requireAdmin])
+  .handler(async ({ context }): Promise<StationStaff[]> => {
+    const { data, error } = await context.supabase
+      .from("profiles")
+      .select("id, full_name, email, role, station_id, is_active, branches(name)")
+      .eq("is_active", true)
+      .order("full_name");
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((p) => ({
+      id: p.id,
+      full_name: p.full_name ?? null,
+      email: p.email ?? null,
+      role: String(p.role) === "admin" ? "admin" : "clerk",
+      branch_name: (p as { branches?: { name?: string } | null }).branches?.name ?? null,
+      station_id: (p as { station_id?: string | null }).station_id ?? null,
+    }));
+  });
+
+/** Assign (or clear) the station a staff member works from. */
+export const assignStaffStation = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ staff_id: z.string().uuid(), station_id: z.string().uuid().nullable() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ station_id: data.station_id })
+      .eq("id", data.staff_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export type StationReportRow = {
   station_id: string;
   station: string;

@@ -98,7 +98,8 @@ function AuthPage() {
         password,
         options: {
           emailRedirectTo:
-            import.meta.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`,
+            import.meta.env["NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL"] ??
+            `${window.location.origin}/auth/callback`,
           data: { full_name: fullName.trim() },
         },
       });

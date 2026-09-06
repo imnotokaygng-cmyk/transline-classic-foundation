@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
 import { Page, SectionCard } from "@/components/page-shell";
 import { QueryState } from "@/components/query-state";
@@ -10,6 +11,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -19,15 +31,27 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { createStation, listStations, setStationActive } from "@/lib/stations.functions";
+import {
+  assignStaffStation,
+  createStation,
+  deleteStation,
+  listStations,
+  listStationStaff,
+  setStationActive,
+} from "@/lib/stations.functions";
+
+const NONE = "__none__";
 
 export const Route = createFileRoute("/_authenticated/admin/stations/")({
   head: () => ({
     meta: [
       { title: "Stations | Transline Classic TMS" },
-      { name: "description", content: "Add and manage Transline Classic booking stations." },
+      { name: "description", content: "Add stations, remove them and assign clerks to a station." },
       { property: "og:title", content: "Stations | Transline Classic TMS" },
-      { property: "og:description", content: "Add and manage Transline Classic booking stations." },
+      {
+        property: "og:description",
+        content: "Add stations, remove them and assign clerks to a station.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -38,8 +62,11 @@ export const Route = createFileRoute("/_authenticated/admin/stations/")({
 function StationsPage() {
   const queryClient = useQueryClient();
   const fetchStations = useServerFn(listStations);
+  const fetchStaff = useServerFn(listStationStaff);
   const addStation = useServerFn(createStation);
   const toggleStation = useServerFn(setStationActive);
+  const removeStation = useServerFn(deleteStation);
+  const assignStation = useServerFn(assignStaffStation);
 
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -47,6 +74,7 @@ function StationsPage() {
   const [branchId, setBranchId] = useState("");
 
   const stations = useQuery({ queryKey: ["stations"], queryFn: () => fetchStations() });
+  const staff = useQuery({ queryKey: ["station-staff"], queryFn: () => fetchStaff() });
   const branches = useQuery({
     queryKey: ["branches"],
     queryFn: async () => {
@@ -55,6 +83,15 @@ function StationsPage() {
       return data ?? [];
     },
   });
+
+  const refresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["stations"] }),
+      queryClient.invalidateQueries({ queryKey: ["station-staff"] }),
+      queryClient.invalidateQueries({ queryKey: ["station-report"] }),
+      queryClient.invalidateQueries({ queryKey: ["staff"] }),
+    ]);
+  };
 
   const create = useMutation({
     mutationFn: () =>
@@ -72,23 +109,43 @@ function StationsPage() {
       setCode("");
       setTown("");
       setBranchId("");
-      await queryClient.invalidateQueries({ queryKey: ["stations"] });
+      await refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const toggle = useMutation({
     mutationFn: (v: { id: string; is_active: boolean }) => toggleStation({ data: v }),
+    onSuccess: refresh,
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => removeStation({ data: { id } }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["stations"] });
+      toast.success("Station deleted");
+      await refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const assign = useMutation({
+    mutationFn: (v: { staff_id: string; station_id: string | null }) => assignStation({ data: v }),
+    onSuccess: async () => {
+      toast.success("Station assignment saved");
+      await refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const rows = stations.data ?? [];
+  const staffRows = staff.data ?? [];
 
   return (
-    <Page title="Stations" description="Booking stations across the network. Clerks can be assigned to a station.">
+    <Page
+      title="Stations"
+      description="Booking stations across the network. Clerks can be assigned to a station."
+    >
       <SectionCard title="Add a station">
         <form
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
@@ -103,7 +160,11 @@ function StationsPage() {
         >
           <div className="space-y-2">
             <Label>Station name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Kisii Main Station" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Kisii Main Station"
+            />
           </div>
           <div className="space-y-2">
             <Label>Code</Label>
@@ -151,8 +212,9 @@ function StationsPage() {
                   <TableHead>Code</TableHead>
                   <TableHead>Town</TableHead>
                   <TableHead>Branch</TableHead>
+                  <TableHead>Staff</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead />
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -163,19 +225,103 @@ function StationsPage() {
                     <TableCell>{s.town ?? "—"}</TableCell>
                     <TableCell>{s.branch_name ?? "—"}</TableCell>
                     <TableCell>
+                      {staffRows.filter((p) => p.station_id === s.id).length}
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={s.is_active ? "default" : "secondary"}>
                         {s.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={toggle.isPending}
-                        onClick={() => toggle.mutate({ id: s.id, is_active: !s.is_active })}
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={toggle.isPending}
+                          onClick={() => toggle.mutate({ id: s.id, is_active: !s.is_active })}
+                        >
+                          {s.is_active ? "Deactivate" : "Activate"}
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive" aria-label={`Delete ${s.name}`}>
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete {s.name}?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This removes the station permanently. Any staff working from it will
+                                no longer have a station assigned.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => remove.mutate(s.id)}>
+                                Delete station
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </QueryState>
+      </SectionCard>
+
+      <SectionCard title="Assign a station to a clerk">
+        <QueryState
+          isLoading={staff.isLoading}
+          error={staff.error}
+          isEmpty={staffRows.length === 0}
+          emptyMessage="No active staff yet."
+        >
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Staff</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Branch</TableHead>
+                  <TableHead className="w-64">Station</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {staffRows.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <span className="font-medium">{p.full_name ?? "Unnamed"}</span>
+                      <span className="block text-xs text-muted-foreground">{p.email ?? "—"}</span>
+                    </TableCell>
+                    <TableCell className="capitalize">{p.role}</TableCell>
+                    <TableCell>{p.branch_name ?? "—"}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={p.station_id ?? NONE}
+                        disabled={assign.isPending}
+                        onValueChange={(v) =>
+                          assign.mutate({ staff_id: p.id, station_id: v === NONE ? null : v })
+                        }
                       >
-                        {s.is_active ? "Deactivate" : "Activate"}
-                      </Button>
+                        <SelectTrigger aria-label={`Station for ${p.full_name ?? "staff"}`}>
+                          <SelectValue placeholder="No station" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE}>No station</SelectItem>
+                          {rows
+                            .filter((s) => s.is_active)
+                            .map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.name} ({s.code})
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                   </TableRow>
                 ))}

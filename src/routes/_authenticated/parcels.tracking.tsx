@@ -77,7 +77,10 @@ function ParcelsTrackingPage() {
               {(parcel.data.destination as { name?: string } | null)?.name ?? "—"}
             </p>
             <p className="text-xs text-muted-foreground">
-              Booked {new Date(parcel.data.created_at).toLocaleString()}
+              Booked{" "}
+              {parcel.data.created_at
+                ? new Date(parcel.data.created_at).toLocaleString()
+                : "—"}
             </p>
           </div>
         )}
