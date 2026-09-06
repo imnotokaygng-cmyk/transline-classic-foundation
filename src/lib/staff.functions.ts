@@ -36,13 +36,16 @@ export const createClerk = createServerFn({ method: "POST" })
         email: z.string().email(),
         password: z.string().min(8),
         phone: z.string().optional(),
-        branch_id: z.string().uuid(),
+        branch_id: z.string().uuid().nullable().optional(),
         station_id: z.string().uuid().nullable().optional(),
         role: z.enum(["admin", "clerk"]).default("clerk"),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    if (data.role === "clerk" && !data.branch_id) {
+      throw new Error("A clerk must be assigned to a branch");
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
