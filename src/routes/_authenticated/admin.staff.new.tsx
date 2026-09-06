@@ -17,6 +17,8 @@ import {
 import { Page, SectionCard } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { createClerk } from "@/lib/staff.functions";
+
+const NONE = "__none__";
 export const Route = createFileRoute("/_authenticated/admin/staff/new")({
   head: () => ({
     meta: [
@@ -75,8 +77,8 @@ function StaffNewPage() {
           email: email.trim(),
           password,
           phone: phone.trim() || undefined,
-          branch_id: branchId,
-          station_id: stationId || null,
+          branch_id: branchId || null,
+          station_id: stationId && stationId !== NONE ? stationId : null,
           role,
         },
       }),
@@ -95,7 +97,12 @@ function StaffNewPage() {
           className="grid gap-4 sm:grid-cols-2"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!fullName.trim() || !email.trim() || password.length < 8 || !branchId) {
+            if (
+              !fullName.trim() ||
+              !email.trim() ||
+              password.length < 8 ||
+              (role === "clerk" && !branchId)
+            ) {
               toast.error("Fill in name, email, branch and a password of 8+ characters.");
               return;
             }
@@ -155,6 +162,7 @@ function StaffNewPage() {
                 <SelectValue placeholder="Select station" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={NONE}>No station</SelectItem>
                 {(stations ?? [])
                   .filter((s) => !branchId || s.branch_id === branchId)
                   .map((s) => (
@@ -177,6 +185,11 @@ function StaffNewPage() {
               </SelectContent>
             </Select>
           </div>
+          {create.error ? (
+            <p className="sm:col-span-2 text-sm text-destructive">
+              {(create.error as Error).message}
+            </p>
+          ) : null}
           <div className="sm:col-span-2">
             <Button type="submit" disabled={create.isPending}>
               {create.isPending ? "Creating…" : "Create staff account"}
