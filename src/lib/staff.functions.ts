@@ -62,7 +62,7 @@ export const createClerk = createServerFn({ method: "POST" })
         full_name: data.full_name,
         email: data.email,
         phone: data.phone ?? null,
-        branch_id: data.branch_id,
+        branch_id: data.branch_id ?? null,
         station_id: data.station_id ?? null,
         role: data.role,
         is_active: true,
