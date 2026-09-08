@@ -123,7 +123,8 @@ export function SeatMap({
   onSelect?: ((seat: string) => void) | undefined;
   plate?: string | null | undefined;
 }) {
-  const { rows, backRow, leftCount } = buildSeatLayout(capacity);
+  const { rows, backRow, leftCount, perRow } = buildSeatLayout(capacity);
+  const columnLabels = perRow === 4 ? ["A", "B", "C", "D"] : ["A", "B", "C"];
 
   const stateOf = (seat: string): SeatState =>
     selected === seat
@@ -138,18 +139,36 @@ export function SeatMap({
 
   return (
     <div className="space-y-4">
-      <div className="mx-auto w-fit rounded-[2.5rem] border-2 border-border bg-secondary/40 p-4 shadow-[var(--shadow-card)]">
+      <div className="mx-auto w-full max-w-md overflow-hidden rounded-[2.5rem] border-2 border-border bg-secondary/40 p-3 shadow-[var(--shadow-card)] sm:p-4">
         {/* Driver cabin */}
-        <div className="mb-4 flex items-center justify-between gap-6 rounded-t-[2rem] border-b-2 border-dashed border-border bg-card px-4 py-3">
+        <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-t-[2rem] border-b-2 border-dashed border-border bg-card px-3 py-3 sm:px-4">
           <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <LoaderPinwheel className="size-6 text-primary" /> Driver
           </span>
-          <span className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
+          <span className="font-mono text-[11px] uppercase text-muted-foreground">
             {plate ?? "Coach"}
           </span>
-          <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <span className="flex items-center justify-end gap-2 border-l border-dashed border-border pl-2 text-xs font-medium text-muted-foreground">
             <DoorOpen className="size-5" /> Door
           </span>
+        </div>
+
+        <div className="mb-1 flex items-center justify-center gap-2" aria-hidden="true">
+          <div className="flex gap-2">
+            {columnLabels.slice(0, leftCount).map((label) => (
+              <span key={label} className="w-12 text-center text-[10px] font-semibold text-muted-foreground">
+                {label}
+              </span>
+            ))}
+          </div>
+          <span className="w-8" />
+          <div className="flex gap-2">
+            {columnLabels.slice(leftCount).map((label) => (
+              <span key={label} className="w-12 text-center text-[10px] font-semibold text-muted-foreground">
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -160,8 +179,8 @@ export function SeatMap({
                   <Seat key={seat} seat={seat} state={stateOf(seat)} onSelect={onSelect} />
                 ))}
               </div>
-              <span className="w-8 text-center text-[10px] uppercase text-muted-foreground/50">
-                {idx + 1}
+              <span className="flex w-8 items-center justify-center self-stretch border-x border-dashed border-border/70 text-center text-[10px] text-muted-foreground/70">
+                {String(idx + 1).padStart(2, "0")}
               </span>
               <div className="flex gap-2">
                 {row.slice(leftCount).map((seat) => (
@@ -172,7 +191,7 @@ export function SeatMap({
           ))}
 
           {backRow.length > 0 && (
-            <div className="flex items-center justify-center gap-2 border-t border-dashed border-border pt-3">
+            <div className="flex items-center justify-center gap-2 border-t-2 border-dashed border-border pt-3">
               {backRow.map((seat) => (
                 <Seat key={seat} seat={seat} state={stateOf(seat)} onSelect={onSelect} />
               ))}
