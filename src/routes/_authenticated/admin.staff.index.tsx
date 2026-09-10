@@ -5,7 +5,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { KeyRound, Plus } from "lucide-react";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,9 +180,7 @@ function StaffIndexPage() {
           <DialogFooter>
             <Button
               disabled={newPassword.length < 8 || reset.isPending}
-              onClick={() =>
-                resetFor && reset.mutate({ id: resetFor.id, password: newPassword })
-              }
+              onClick={() => resetFor && reset.mutate({ id: resetFor.id, password: newPassword })}
             >
               {reset.isPending ? "Resetting…" : "Reset password"}
             </Button>
