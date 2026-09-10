@@ -4,7 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { Page, SectionCard } from "@/components/page-shell";
 import { QueryState } from "@/components/query-state";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { KES } from "@/lib/format";
 import { stationReport } from "@/lib/stations.functions";
 
@@ -14,7 +21,10 @@ export const Route = createFileRoute("/_authenticated/admin/stations/reports")({
       { title: "Station Report | Transline Classic TMS" },
       { name: "description", content: "Tickets, parcels and revenue produced by each station." },
       { property: "og:title", content: "Station Report | Transline Classic TMS" },
-      { property: "og:description", content: "Tickets, parcels and revenue produced by each station." },
+      {
+        property: "og:description",
+        content: "Tickets, parcels and revenue produced by each station.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -41,7 +51,10 @@ function StationReportPage() {
   );
 
   return (
-    <Page title="Station Report" description="Tickets, parcels and revenue produced by each station.">
+    <Page
+      title="Station Report"
+      description="Tickets, parcels and revenue produced by each station."
+    >
       <SectionCard title="Network totals">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
@@ -59,7 +72,12 @@ function StationReportPage() {
       </SectionCard>
 
       <SectionCard title="By station">
-        <QueryState isLoading={isLoading} error={error} isEmpty={rows.length === 0} emptyMessage="No stations yet.">
+        <QueryState
+          isLoading={isLoading}
+          error={error}
+          isEmpty={rows.length === 0}
+          emptyMessage="No stations yet."
+        >
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -77,7 +95,8 @@ function StationReportPage() {
                 {rows.map((r) => (
                   <TableRow key={r.station_id}>
                     <TableCell className="font-medium">
-                      {r.station} <span className="font-mono text-xs text-muted-foreground">{r.code}</span>
+                      {r.station}{" "}
+                      <span className="font-mono text-xs text-muted-foreground">{r.code}</span>
                     </TableCell>
                     <TableCell>{r.branch_name ?? "—"}</TableCell>
                     <TableCell>{r.staff_count}</TableCell>

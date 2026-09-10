@@ -29,7 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import {
   assignStaffStation,
@@ -78,7 +85,10 @@ function StationsPage() {
   const branches = useQuery({
     queryKey: ["branches"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("branches").select("id, name, town").order("name");
+      const { data, error } = await supabase
+        .from("branches")
+        .select("id, name, town")
+        .order("name");
       if (error) throw new Error(error.message);
       return data ?? [];
     },
@@ -224,9 +234,7 @@ function StationsPage() {
                     <TableCell className="font-mono text-xs">{s.code}</TableCell>
                     <TableCell>{s.town ?? "—"}</TableCell>
                     <TableCell>{s.branch_name ?? "—"}</TableCell>
-                    <TableCell>
-                      {staffRows.filter((p) => p.station_id === s.id).length}
-                    </TableCell>
+                    <TableCell>{staffRows.filter((p) => p.station_id === s.id).length}</TableCell>
                     <TableCell>
                       <Badge variant={s.is_active ? "default" : "secondary"}>
                         {s.is_active ? "Active" : "Inactive"}

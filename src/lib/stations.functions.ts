@@ -150,9 +150,15 @@ export const stationReport = createServerFn({ method: "GET" })
   .middleware([requireAdmin])
   .handler(async ({ context }): Promise<StationReportRow[]> => {
     const [stationsRes, staffRes, bookingsRes, parcelsRes] = await Promise.all([
-      context.supabase.from("stations").select("id, name, code, branch_id, branches(name)").order("name"),
+      context.supabase
+        .from("stations")
+        .select("id, name, code, branch_id, branches(name)")
+        .order("name"),
       context.supabase.from("profiles").select("id, station_id"),
-      context.supabase.from("bookings").select("booked_by, fare_amount, payment_status").is("deleted_at", null),
+      context.supabase
+        .from("bookings")
+        .select("booked_by, fare_amount, payment_status")
+        .is("deleted_at", null),
       context.supabase.from("parcels").select("booked_by, fare_amount"),
     ]);
 
