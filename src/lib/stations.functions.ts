@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import { requireAdmin, requireAdminOrClerk } from "@/lib/authz.middleware";
 
+function isMissingApplicationTable(error: { code?: string; message?: string } | null) {
+  return error?.code === "42P01" || error?.message?.includes("does not exist");
+}
+
 export type Station = {
   id: string;
   name: string;
@@ -20,7 +24,10 @@ export const listStations = createServerFn({ method: "GET" })
       .from("stations")
       .select("id, name, code, town, branch_id, is_active, branches(name)")
       .order("name");
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (isMissingApplicationTable(error)) return [];
+      throw new Error(error.message);
+    }
     return (data ?? []).map((s) => ({
       id: s.id,
       name: s.name,
@@ -103,7 +110,10 @@ export const listStationStaff = createServerFn({ method: "GET" })
       .select("id, full_name, email, role, station_id, is_active, branches(name)")
       .eq("is_active", true)
       .order("full_name");
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (isMissingApplicationTable(error)) return [];
+      throw new Error(error.message);
+    }
     return (data ?? []).map((p) => ({
       id: p.id,
       full_name: p.full_name ?? null,
@@ -163,7 +173,10 @@ export const stationReport = createServerFn({ method: "GET" })
     ]);
 
     for (const r of [stationsRes, staffRes, bookingsRes, parcelsRes]) {
-      if (r.error) throw new Error(r.error.message);
+      if (r.error) {
+        if (isMissingApplicationTable(r.error)) return [];
+        throw new Error(r.error.message);
+      }
     }
 
     const stationOfStaff = new Map<string, string>();
