@@ -12,9 +12,11 @@ export const Route = createFileRoute("/_authenticated")({
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
       if (typeof window !== "undefined") {
+        // TanStack Router's location.search is the parsed search object.
+        // Use searchStr here because sessionStorage requires a primitive string.
         window.sessionStorage.setItem(
           "transline:redirect-after-auth",
-          `${location.pathname}${location.search}${location.hash}`,
+          `${location.pathname}${location.searchStr}${location.hash}`,
         );
       }
       throw redirect({ to: "/auth" });
