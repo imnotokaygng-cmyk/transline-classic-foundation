@@ -9,15 +9,13 @@ import { roleTitle, type StaffProfile } from "@/lib/session";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
+    const pathname = typeof location.pathname === "string" ? location.pathname : "/dashboard";
     const { data, error } = await supabase.auth.getUser();
+
     if (error || !data.user) {
       if (typeof window !== "undefined") {
-        // TanStack Router's location.search is the parsed search object.
-        // Use searchStr here because sessionStorage requires a primitive string.
-        window.sessionStorage.setItem(
-          "transline:redirect-after-auth",
-          `${location.pathname}${location.searchStr}${location.hash}`,
-        );
+        // Avoid serializing TanStack Router's parsed location object here.
+        window.sessionStorage.setItem("transline:redirect-after-auth", pathname);
       }
       throw redirect({ to: "/auth" });
     }
@@ -34,11 +32,14 @@ export const Route = createFileRoute("/_authenticated")({
       throw new Error(`Unable to load staff profile: ${profileError.message}`);
     }
 
-    const role = ["admin", "super_admin", "administrator"].includes(String(profileRow?.role))
+    // Keep route decisions strictly primitive even if a malformed profile row is returned.
+    const roleValue = typeof profileRow?.role === "string" ? profileRow.role : "";
+    const role = ["admin", "super_admin", "administrator"].includes(roleValue)
       ? "admin"
       : "clerk";
     const isActive = profileRow?.is_active ?? true;
     const branchId = profileRow?.branch_id ?? null;
+
     if (!isActive) {
       await supabase.auth.signOut();
       throw redirect({ to: "/auth/disabled" });
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/_authenticated")({
       "/staff",
       "/settings/system",
     ];
-    if (role === "clerk" && adminOnlyPrefixes.some((p) => location.pathname.startsWith(p))) {
+    if (role === "clerk" && adminOnlyPrefixes.some((p) => pathname.startsWith(p))) {
       throw redirect({ to: "/dashboard" });
     }
 
