@@ -10,7 +10,15 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    if (error || !data.user) {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(
+          "transline:redirect-after-auth",
+          `${location.pathname}${location.search}${location.hash}`,
+        );
+      }
+      throw redirect({ to: "/auth" });
+    }
 
     // Resolve the profile with the browser client. TanStack Start server functions
     // do not automatically receive Supabase's browser session bearer token.
@@ -20,7 +28,9 @@ export const Route = createFileRoute("/_authenticated")({
       .eq("id", data.user.id)
       .maybeSingle();
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      throw new Error(`Unable to load staff profile: ${profileError.message}`);
+    }
 
     const role = ["admin", "super_admin", "administrator"].includes(String(profileRow?.role))
       ? "admin"

@@ -1,4 +1,4 @@
-import { useRouteContext } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 
 export type StaffProfile = {
   id: string;
@@ -11,10 +11,18 @@ export type StaffProfile = {
 };
 
 export function useStaffSession() {
-  const ctx = useRouteContext({ from: "/_authenticated" }) as {
-    user: { id: string; email?: string | undefined };
-    profile: StaffProfile;
-  };
+  const routerState = useRouterState();
+  const ctx = routerState.matches.find((match) => match.routeId === "/_authenticated")
+    ?.context as
+    | {
+        user: { id: string; email?: string | undefined };
+        profile: StaffProfile;
+      }
+    | undefined;
+
+  if (!ctx) {
+    throw new Error("Authenticated route context is unavailable");
+  }
   return {
     user: ctx.user,
     profile: ctx.profile,
