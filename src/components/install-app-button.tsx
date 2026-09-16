@@ -8,36 +8,69 @@ type InstallEvent = Event & {
 };
 
 export function InstallAppButton() {
-  const [event, setEvent] = useState<InstallEvent | null>(null);
+  const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
+
   useEffect(() => {
-    const handler = (next: Event) => {
-      next.preventDefault();
-      setEvent(next as InstallEvent);
+    let mounted = true;
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      if (mounted) setInstallEvent(event as InstallEvent);
     };
 
-    window.addEventListener("beforeinstallprompt", handler);
+    const handleAppInstalled = () => {
+      if (mounted) {
+        setInstalled(true);
+        setInstallEvent(null);
+      }
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
     if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register("/sw.js");
+      void navigator.serviceWorker.register("/sw.js").catch((error) => {
+        console.error("Unable to register Transline app service worker", error);
+      });
     }
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setInstalled(true);
+    }
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
   }, []);
+
+  if (installed) return null;
+
+  async function handleInstall() {
+    if (!installEvent) {
+      window.alert(
+        "Your browser has not provided the install option yet. In Chrome or Edge, open the browser menu and choose Install app or Add to Home screen.",
+      );
+      return;
+    }
+
+    await installEvent.prompt();
+    const choice = await installEvent.userChoice;
+    if (choice.outcome === "accepted") setInstalled(true);
+    setInstallEvent(null);
+  }
+
   return (
     <Button
       variant="outline"
       size="sm"
-      onClick={async () => {
-        if (!event) {
-          window.alert("App installation is not available in this browser. Open the browser menu and choose Add to Home screen or Install app.");
-          return;
-        }
-        await event.prompt();
-        await event.userChoice;
-        setEvent(null);
-      }}
-      aria-label="Download or install Transline Classic"
+      onClick={handleInstall}
+      aria-label="Install Transline Classic as an app"
+      title="Install Transline Classic as an app"
     >
-      <Download data-icon="inline-start" /> Download app
+      <Download data-icon="inline-start" /> Install app
     </Button>
   );
 }
