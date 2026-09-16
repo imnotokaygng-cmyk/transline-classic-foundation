@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Bus, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +32,16 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const router = useRouter();
+
+  function getPostAuthDestination() {
+    if (typeof window === "undefined") return "/dashboard";
+    const destination = window.sessionStorage.getItem("transline:redirect-after-auth");
+    window.sessionStorage.removeItem("transline:redirect-after-auth");
+    return destination?.startsWith("/") && !destination.startsWith("//")
+      ? destination
+      : "/dashboard";
+  }
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -78,8 +88,9 @@ function AuthPage() {
         return;
       }
 
-      // The authenticated route resolves the profile with the active browser session.
-      navigate({ to: "/dashboard", replace: true });
+      // Refresh the protected route context before returning to the requested page.
+      await router.invalidate();
+      await navigate({ to: getPostAuthDestination(), replace: true });
     } catch (error) {
       console.error("[v0] Login failed:", error);
       toast.error("We could not sign you in. Check your email and password and try again.");
@@ -108,7 +119,8 @@ function AuthPage() {
         return;
       }
       if (data.session) {
-        navigate({ to: "/dashboard", replace: true });
+        await router.invalidate();
+        await navigate({ to: getPostAuthDestination(), replace: true });
       } else {
         toast.success("Account created. Check your email to confirm before signing in.");
       }
