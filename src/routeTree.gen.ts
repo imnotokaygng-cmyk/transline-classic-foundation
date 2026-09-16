@@ -14,7 +14,9 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedClerkRouteImport } from './routes/_authenticated/clerk'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedStationsRouteImport } from './routes/_authenticated/stations'
 import { Route as AuthDisabledRouteImport } from './routes/auth_.disabled'
 import { Route as AuthPendingRouteImport } from './routes/auth_.pending'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
@@ -86,9 +88,19 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedClerkRoute = AuthenticatedClerkRouteImport.update({
+  id: '/clerk',
+  path: '/clerk',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStationsRoute = AuthenticatedStationsRouteImport.update({
+  id: '/stations',
+  path: '/stations',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthDisabledRoute = AuthDisabledRouteImport.update({
@@ -361,7 +373,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/clerk': typeof AuthenticatedClerkRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/stations': typeof AuthenticatedStationsRoute
   '/auth/disabled': typeof AuthDisabledRoute
   '/auth/pending': typeof AuthPendingRoute
   '/bookings/$ref': typeof AuthenticatedBookingsRefRoute
@@ -413,7 +427,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/clerk': typeof AuthenticatedClerkRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/stations': typeof AuthenticatedStationsRoute
   '/auth/disabled': typeof AuthDisabledRoute
   '/auth/pending': typeof AuthPendingRoute
   '/bookings/$ref': typeof AuthenticatedBookingsRefRoute
@@ -468,7 +484,9 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/clerk': typeof AuthenticatedClerkRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/stations': typeof AuthenticatedStationsRoute
   '/auth_/disabled': typeof AuthDisabledRoute
   '/auth_/pending': typeof AuthPendingRoute
   '/_authenticated/bookings/$ref': typeof AuthenticatedBookingsRefRoute
@@ -523,7 +541,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/admin'
+    | '/clerk'
     | '/dashboard'
+    | '/stations'
     | '/auth/disabled'
     | '/auth/pending'
     | '/bookings/$ref'
@@ -575,7 +595,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/clerk'
     | '/dashboard'
+    | '/stations'
     | '/auth/disabled'
     | '/auth/pending'
     | '/bookings/$ref'
@@ -629,7 +651,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/admin'
+    | '/_authenticated/clerk'
     | '/_authenticated/dashboard'
+    | '/_authenticated/stations'
     | '/auth_/disabled'
     | '/auth_/pending'
     | '/_authenticated/bookings/$ref'
@@ -724,11 +748,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clerk': {
+      id: '/_authenticated/clerk'
+      path: '/clerk'
+      fullPath: '/clerk'
+      preLoaderRoute: typeof AuthenticatedClerkRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/stations': {
+      id: '/_authenticated/stations'
+      path: '/stations'
+      fullPath: '/stations'
+      preLoaderRoute: typeof AuthenticatedStationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/auth_/disabled': {
@@ -1082,7 +1120,9 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedClerkRoute: typeof AuthenticatedClerkRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedStationsRoute: typeof AuthenticatedStationsRoute
   AuthenticatedBookingsRefRoute: typeof AuthenticatedBookingsRefRoute
   AuthenticatedBookingsDispatchRoute: typeof AuthenticatedBookingsDispatchRoute
   AuthenticatedBookingsManifestRoute: typeof AuthenticatedBookingsManifestRoute
@@ -1124,7 +1164,9 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedClerkRoute: AuthenticatedClerkRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedStationsRoute: AuthenticatedStationsRoute,
   AuthenticatedBookingsRefRoute: AuthenticatedBookingsRefRoute,
   AuthenticatedBookingsDispatchRoute: AuthenticatedBookingsDispatchRoute,
   AuthenticatedBookingsManifestRoute: AuthenticatedBookingsManifestRoute,
