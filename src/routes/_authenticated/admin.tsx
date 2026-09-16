@@ -1,15 +1,12 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
-import { getStaffContext } from "@/lib/authz.functions";
-
 export const Route = createFileRoute("/_authenticated/admin")({
-  // Server-side authorization: the role is resolved from the database by a
-  // server function, never from client state.
-  beforeLoad: async () => {
-    const ctx = await getStaffContext();
-    if (!ctx.is_active) throw redirect({ to: "/auth/disabled" });
-    if (ctx.role !== "admin") throw redirect({ to: "/dashboard" });
-    return { admin: ctx };
+  // The parent authenticated route already resolved the Supabase session and
+  // the caller's staff profile. Reuse that trusted route context here instead
+  // of making a second server-function request during every Admin navigation.
+  beforeLoad: ({ context }) => {
+    if (!context.profile.is_active) throw redirect({ to: "/auth/disabled" });
+    if (context.profile.role !== "admin") throw redirect({ to: "/dashboard" });
   },
   component: () => <Outlet />,
 });
