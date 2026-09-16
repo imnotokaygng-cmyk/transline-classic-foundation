@@ -14,7 +14,12 @@ export function InstallAppButton() {
       next.preventDefault();
       setEvent(next as InstallEvent);
     };
+
     window.addEventListener("beforeinstallprompt", handler);
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.register("/sw.js");
+    }
+
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
   return (
