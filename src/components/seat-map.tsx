@@ -3,36 +3,33 @@ import { DoorOpen, LoaderPinwheel, UserRound } from "lucide-react";
 export type SeatState = "available" | "booked" | "selected" | "blocked" | "staff";
 
 /**
- * Builds a realistic coach layout from the bus capacity.
- * - Capacity >= 20  → 2 + aisle + 2 rows with a 5-seat rear bench where it fits.
- * - Smaller vehicles (shuttles) → 1 + aisle + 2 rows, matching a 11/14 seater.
+ * Builds the passenger-seat rows for a coach.
+ * Passenger capacity is kept separate from the two fixed staff seats at the front.
+ *
+ * - 4+ passenger seats: 2 + aisle + 2 layout, matching the reference coach.
+ * - 1–3 passenger seats: 1 + aisle + 2 layout so small vehicles still fit naturally.
+ * - The final row is allowed to be partial when the capacity does not divide evenly.
  */
 export function buildSeatLayout(capacity: number): {
   rows: string[][];
-  backRow: string[];
   perRow: number;
   leftCount: number;
 } {
   const total = Math.max(0, Math.floor(capacity));
-  const isCoach = total >= 20;
-  const perRow = isCoach ? 4 : 3;
-  const leftCount = isCoach ? 2 : 1;
-
-  const hasBackRow = isCoach && total >= 9 && (total - 5) % perRow === 0;
-  const frontCount = hasBackRow ? total - 5 : total;
+  const perRow = total >= 4 ? 4 : 3;
+  const leftCount = total >= 4 ? 2 : 1;
 
   const rows: string[][] = [];
-  for (let i = 0; i < frontCount; i += perRow) {
+  for (let i = 0; i < total; i += perRow) {
     rows.push(
-      Array.from({ length: Math.min(perRow, frontCount - i) }, (_, j) => String(i + j + 1)),
+      Array.from(
+        { length: Math.min(perRow, total - i) },
+        (_, j) => String(i + j + 1),
+      ),
     );
   }
 
-  const backRow = hasBackRow
-    ? Array.from({ length: 5 }, (_, i) => String(frontCount + i + 1))
-    : [];
-
-  return { rows, backRow, perRow, leftCount };
+  return { rows, perRow, leftCount };
 }
 
 const seatClass: Record<SeatState, string> = {
@@ -67,11 +64,11 @@ function Seat({
         state === "selected" ? "drop-shadow-[0_0_0.35rem_hsl(var(--seat-selected)/0.7)]" : "",
       ].join(" ")}
     >
-      {/* backrest with the seat label */}
-      <span className="relative z-10 -mb-1 flex h-5 w-7 items-center justify-center rounded-t-md border border-border/60 bg-card text-[10px] font-semibold text-foreground">
+      {/* Backrest with the seat label */}
+      <span className="relative z-10 -mb-1 flex h-5 w-9 items-center justify-center rounded-t-md border border-border/60 bg-card text-[9px] font-semibold text-foreground">
         {seat}
       </span>
-      {/* armrests + cushion */}
+      {/* Armrests + cushion */}
       <span
         className={[
           "flex h-6 w-full items-end justify-between rounded-md px-0 shadow-sm",
@@ -110,93 +107,80 @@ export function SeatMap({
   capacity,
   taken,
   blocked,
-  staffSeats,
   selected,
   onSelect,
   plate,
 }: {
+  /** Passenger-seat capacity. STF1 and STF2 are fixed crew seats and are not counted here. */
   capacity: number;
   taken: Set<string>;
   blocked?: Set<string> | undefined;
-  staffSeats?: Set<string> | undefined;
   selected?: string | undefined;
   onSelect?: ((seat: string) => void) | undefined;
   plate?: string | null | undefined;
 }) {
-  const { rows, backRow, leftCount, perRow } = buildSeatLayout(capacity);
-  const columnLabels = perRow === 4 ? ["A", "B", "C", "D"] : ["A", "B", "C"];
+  const { rows, leftCount } = buildSeatLayout(capacity);
 
   const stateOf = (seat: string): SeatState =>
     selected === seat
       ? "selected"
       : taken.has(seat)
         ? "booked"
-        : staffSeats?.has(seat)
-          ? "staff"
-          : blocked?.has(seat)
-            ? "blocked"
-            : "available";
+        : blocked?.has(seat)
+          ? "blocked"
+          : "available";
 
   return (
     <div className="space-y-4">
       <div className="mx-auto w-full max-w-md overflow-hidden rounded-[2.5rem] border-2 border-border bg-secondary/40 p-3 shadow-[var(--shadow-card)] sm:p-4">
-        {/* Driver cabin */}
-        <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-t-[2rem] border-b-2 border-dashed border-border bg-card px-3 py-3 sm:px-4">
-          <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <LoaderPinwheel className="size-6 text-primary" /> Driver
-          </span>
-          <span className="font-mono text-[11px] uppercase text-muted-foreground">
-            {plate ?? "Coach"}
-          </span>
-          <span className="flex items-center justify-end gap-2 border-l border-dashed border-border pl-2 text-xs font-medium text-muted-foreground">
-            <DoorOpen className="size-5" /> Door
-          </span>
-        </div>
-
-        <div className="mb-1 flex items-center justify-center gap-2" aria-hidden="true">
-          <div className="flex gap-2">
-            {columnLabels.slice(0, leftCount).map((label) => (
-              <span key={label} className="w-12 text-center text-[10px] font-semibold text-muted-foreground">
-                {label}
-              </span>
-            ))}
+        {/* Front of bus: driver is always on the right, with two fixed staff seats on the left. */}
+        <div className="mb-4 rounded-t-[2rem] border-b-2 border-dashed border-border bg-card px-3 py-3 sm:px-4">
+          <div className="grid grid-cols-[1fr_2.5rem_1fr] items-end gap-2">
+            <div className="flex justify-center gap-2">
+              <Seat seat="STF1" state="staff" />
+              <Seat seat="STF2" state="staff" />
+            </div>
+            <div aria-hidden="true" />
+            <div className="flex flex-col items-center justify-end gap-1 rounded-xl border border-border/70 bg-secondary/60 px-2 py-2 text-xs font-medium text-muted-foreground">
+              <LoaderPinwheel className="size-7 text-primary" />
+              <span>Driver</span>
+              <span className="font-mono text-[9px] uppercase">{plate ?? "Coach"}</span>
+            </div>
           </div>
-          <span className="w-8" />
-          <div className="flex gap-2">
-            {columnLabels.slice(leftCount).map((label) => (
-              <span key={label} className="w-12 text-center text-[10px] font-semibold text-muted-foreground">
-                {label}
-              </span>
-            ))}
+          <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>Staff</span>
+            <span className="flex items-center gap-1">
+              <DoorOpen className="size-4" /> Front door
+            </span>
           </div>
         </div>
 
+        {/* Passenger seating: 2 + aisle + 2, dynamically filled from the configured capacity. */}
         <div className="space-y-2">
-          {rows.map((row, idx) => (
-            <div key={idx} className="flex items-center justify-center gap-2">
-              <div className="flex gap-2">
-                {row.slice(0, leftCount).map((seat) => (
-                  <Seat key={seat} seat={seat} state={stateOf(seat)} onSelect={onSelect} />
-                ))}
-              </div>
-              <span className="flex w-8 items-center justify-center self-stretch border-x border-dashed border-border/70 text-center text-[10px] text-muted-foreground/70">
-                {String(idx + 1).padStart(2, "0")}
-              </span>
-              <div className="flex gap-2">
-                {row.slice(leftCount).map((seat) => (
-                  <Seat key={seat} seat={seat} state={stateOf(seat)} onSelect={onSelect} />
-                ))}
-              </div>
-            </div>
-          ))}
+          {rows.map((row, idx) => {
+            const leftSeats = row.slice(0, leftCount);
+            const rightSeats = row.slice(leftCount);
 
-          {backRow.length > 0 && (
-            <div className="flex items-center justify-center gap-2 border-t-2 border-dashed border-border pt-3">
-              {backRow.map((seat) => (
-                <Seat key={seat} seat={seat} state={stateOf(seat)} onSelect={onSelect} />
-              ))}
-            </div>
-          )}
+            return (
+              <div key={idx} className="flex items-center justify-center gap-2">
+                <div className="flex min-w-0 gap-2">
+                  {leftSeats.map((seat) => (
+                    <Seat key={seat} seat={seat} state={stateOf(seat)} onSelect={onSelect} />
+                  ))}
+                </div>
+
+                <span className="flex min-h-11 w-8 shrink-0 items-center justify-center border-x border-dashed border-border/70 text-[9px] text-muted-foreground/70">
+                  {String(idx + 1).padStart(2, "0")}
+                </span>
+
+                <div className="flex min-w-0 gap-2">
+                  {rightSeats.map((seat) => (
+                    <Seat key={seat} seat={seat} state={stateOf(seat)} onSelect={onSelect} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-2 rounded-b-[2rem] border-t-2 border-dashed border-border pt-3 text-[11px] text-muted-foreground">
