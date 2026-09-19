@@ -1,5 +1,5 @@
 import { CircleUserRound, DoorOpen } from "lucide-react";
-import { buildBusLayout } from "@/lib/seat-layout";
+import { buildBusLayout } from "../../lib/seat-layout";
 import { cn } from "@/lib/utils";
 
 interface SeatMapProps {
